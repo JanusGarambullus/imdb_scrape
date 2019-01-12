@@ -1,0 +1,17 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r}
+director_plot <- joined_data %>% drop_na(Revenue) %>% group_by(Director) %>% summarise(average_revenue = mean(Revenue)) %>% arrange(desc(average_revenue)) %>% top_n(30) %>%
+  ggplot(aes(x=reorder(Director, average_revenue), y= average_revenue)) +
+    geom_bar(stat = "identity") +
+    coord_flip()
+  
+ggplotly(director_plot)
+```
+

@@ -1,0 +1,265 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(rvest)
+library(tidyverse)
+```
+
+```{r}
+url <- "https://www.imdb.com/search/title?count=10000&title_type=feature&my_ratings=exclude&sort=num_votes,desc&page=1&ref_=adv_prv"
+
+webpage <- read_html(url)
+```
+
+```{r}
+rank_data_html <- html_nodes(webpage, ".text-primary")
+
+rank_data <- html_text(rank_data_html)
+rank_data <- as.character(rank_data)
+rank_data <- gsub(",","", rank_data)
+rank_data <- as.numeric(rank_data)
+
+
+title_data_html <- html_nodes(webpage, ".lister-item-header a")
+title_data <- html_text(title_data_html)
+
+
+description_data_html <- html_nodes(webpage, ".text-muted+ .text-muted , .ratings-bar+ .text-muted")
+description_data <- html_text(description_data_html)
+
+# Improvement could be removing backspaces (\)
+description_data <- gsub("\n", "", description_data)
+description_data <- trimws(description_data, which = "left")
+
+
+test_data_html <- html_nodes(webpage, ".ratings-imdb-rating strong , .text-muted.unbold")
+```
+
+```{r}
+score_data <- html_text(test_data_html)
+
+score_data <- gsub("[A-Z]", "", score_data)
+score_data <- gsub("\\(", "", score_data)
+score_data <- gsub("\\)", "", score_data)
+score_data <- trimws(score_data, which = "left")
+score_data[nchar(score_data)==0] <- "1111"
+
+
+idx <- which(nchar(score_data) == 4)
+structured_score <- cbind(Year = score_data[idx], Score = ifelse(nchar(score_data[idx + 1]) == 3, score_data[idx + 1], NA))
+```
+
+```{r}
+metascore_html <- html_nodes(webpage, ".text-muted.unbold, .unfavorable , .mixed , .favorable")
+metascore_data <- html_text(metascore_html)
+metascore_data <- trimws(metascore_data, which = "right")
+
+metascore_data <- gsub("[A-Z]", "", metascore_data)
+metascore_data <- gsub("\\(", "", metascore_data)
+metascore_data <- gsub("\\)", "", metascore_data)
+metascore_data <- trimws(metascore_data, which = "left")
+metascore_data[nchar(metascore_data)==0] <- "1111"
+
+midx <- which(nchar(metascore_data) == 4)
+structured_metascore <- cbind(Year = metascore_data[midx], Score = ifelse(nchar(metascore_data[midx + 1]) == 2, metascore_data[midx + 1], NA))
+```
+
+```{r}
+#Scraping Age limit
+
+########################## Needs bug fix #############################
+
+age_html <- html_nodes(webpage, ".text-muted.unbold, .certificate")
+age_data <- html_text(age_html)
+
+age_data <- if_else(age_data == "12A", "12", age_data)
+age_data <- if_else(age_data == "X", "18", age_data)
+age_data <- if_else(age_data == "R", "18", age_data)
+age_data <- if_else(age_data == "PG", "13", age_data)
+age_data <- if_else(age_data == "PG-13", "13", age_data)
+age_data <- if_else(age_data == "AA", "14", age_data)
+age_data <- if_else(age_data == "U", "04", age_data)
+age_data <- if_else(age_data == "A", "18", age_data)
+age_data <- if_else(age_data == "Rejected", "18", age_data)
+age_data <- if_else(age_data == "NC-17", "17", age_data)
+age_data <- if_else(age_data == "Not Rated", "00", age_data)
+age_data <- if_else(age_data == "(Banned)", "18", age_data)
+age_data <- if_else(age_data == "H", "16", age_data)
+
+age_data <- trimws(age_data, which = "right")
+age_data <- gsub("[A-Z]", "", age_data)
+age_data <- gsub("\\(", "", age_data)
+age_data <- gsub("\\)", "", age_data)
+age_data <- trimws(age_data, which = "left")
+age_data[nchar(age_data)==0] <- "1111"
+
+aidx <- which(nchar(age_data) == 4)
+structured_age <- cbind(Year = age_data[aidx], Age = ifelse(nchar(age_data[aidx + 1]) == 2, age_data[aidx + 1], NA))
+```
+
+```{r}
+# Bug fix
+#title_data[9000]
+#structured_age[9000]
+```
+
+```{r}
+#bug_testing <- cbind(title_data, structured_age)
+```
+
+```{r}
+runtime_data_html <- html_nodes(webpage, ".text-muted .runtime , .text-muted.unbold")
+runtime_data <- html_text(runtime_data_html)
+
+# Task: If data contains "min", pad with whitespace to length of 8.
+contains_min <- str_detect(runtime_data, "min")
+
+runtime_data[contains_min] <- str_pad(runtime_data[contains_min], 8, "right", pad = "-")
+
+#runtime_data <- trimws(runtime_data, which = "right")
+runtime_data <- gsub("[A-Z]", "", runtime_data)
+runtime_data <- gsub("\\(", "", runtime_data)
+runtime_data <- gsub("\\)", "", runtime_data)
+runtime_data <- trimws(runtime_data, which = "left")
+runtime_data[nchar(runtime_data)==0] <- "1111"
+
+ridx <- which(nchar(runtime_data) == 4)
+structured_runtime <- cbind(Year = runtime_data[ridx], Runtime = ifelse(nchar(runtime_data[ridx + 1]) == 8, runtime_data[ridx + 1], NA))
+
+# Clean the data later
+```
+
+```{r}
+# Genre info
+genre_data_html <- html_nodes(webpage, ".text-muted.unbold , .genre")
+genre_data <- html_text(genre_data_html)
+
+genre_data <- gsub("\n", "", genre_data)
+genre_data <- trimws(genre_data, which = "right")
+
+genre_data <- gsub("\\([A-Z]+\\)", "", genre_data)
+genre_data <- trimws(genre_data, which = "left")
+genre_data <- gsub("\\(", "", genre_data)
+genre_data <- gsub("\\)", "", genre_data)
+genre_data[nchar(genre_data)==0] <- "1111"
+
+# Pad the genre
+contains_genre <- str_detect(genre_data, "[A-Z]")
+genre_data[contains_genre] <- str_pad(genre_data[contains_genre], 50, "right", pad = "-")
+
+gidx <- which(nchar(genre_data) == 4)
+structured_genre <- cbind(Year = genre_data[gidx], Genre = ifelse(nchar(genre_data[gidx + 1]) == 50, genre_data[gidx + 1], NA))
+
+# Fix formatting later
+```
+
+```{r}
+# Number of votes
+vote_data_html <- html_nodes(webpage, ".text-muted.unbold , .sort-num_votes-visible span:nth-child(2)")
+vote_data <- html_text(vote_data_html)
+
+vote_data <- gsub("\\([A-Z]+\\)", "", vote_data)
+vote_data <- trimws(vote_data, which = "left")
+vote_data[nchar(vote_data)==0] <- "(1111)"
+
+# Pad the votes
+contains_no_vote <- str_detect(vote_data, "\\(")
+contains_vote <- !contains_no_vote
+vote_data[contains_vote] <- str_pad(vote_data[contains_vote], 15, "right", pad = "-")
+
+vote_data <- gsub("\\(", "", vote_data)
+vote_data <- gsub("\\)", "", vote_data)
+
+vidx <- which(nchar(vote_data) == 4)
+structured_vote <- cbind(Year = vote_data[vidx], Vote = ifelse(nchar(vote_data[vidx + 1]) == 15, vote_data[vidx + 1], NA))
+```
+
+```{r}
+# Gross box office
+gross_data_html <- html_nodes(webpage, ".text-muted.unbold , .ghost~ .text-muted+ span")
+gross_data <- html_text(gross_data_html)
+
+gross_data <- gsub("\\([A-Z]+\\)", "", gross_data)
+gross_data <- trimws(gross_data, which = "left")
+gross_data[nchar(gross_data)==0] <- "(1111)"
+
+# Pad the votes
+contains_no_gross <- str_detect(gross_data, "\\(")
+contains_gross <- !contains_no_gross
+gross_data[contains_gross] <- str_pad(gross_data[contains_gross], 15, "right", pad = "-")
+
+gross_data <- gsub("\\(", "", gross_data)
+gross_data <- gsub("\\)", "", gross_data)
+
+gridx <- which(nchar(gross_data) == 4)
+structured_gross <- cbind(Year = gross_data[gridx], Vote = ifelse(nchar(gross_data[gridx + 1]) == 15, gross_data[gridx + 1], NA))
+```
+
+```{r}
+# Directors TBC
+director_data_html <- html_nodes(webpage, ".text-muted.unbold , .text-muted~ .text-muted+ p a:nth-child(1)")
+director_data <- html_text(director_data_html)
+
+director_data <- gsub("\\([A-Z]+\\)", "", director_data)
+director_data <- trimws(director_data, which = "left")
+director_data[nchar(director_data)==0] <- "(1111)"
+
+# Pad the director
+contains_no_director <- str_detect(director_data, "\\(")
+contains_director <- !contains_no_director
+director_data[contains_director] <- str_pad(director_data[contains_director], 50, "right", pad = "_")
+
+director_data <- gsub("\\(", "", director_data)
+director_data <- gsub("\\)", "", director_data)
+
+dridx <- which(nchar(director_data) == 4)
+structured_director <- cbind(Year = director_data[dridx], Vote = ifelse(nchar(director_data[dridx + 1]) == 50, director_data[dridx + 1], NA))
+```
+
+Now just need to loop it over the pages, creating separate files, merging all in the end.
+
+Joining it together
+
+```{r}
+joined_data <- cbind(Rank = rank_data, title_data, structured_score ,structured_metascore, structured_genre, structured_vote, structured_director, structured_runtime, structured_gross, description_data)
+
+joined_data <- as.data.frame(joined_data)
+```
+
+```{r}
+# Clean up dataset
+joined_data <- subset(joined_data, select = -c(5,7,9,11,13,15))
+
+colnames(joined_data) <- c("Rank", "Title", "Year", "Score", "Metascore", "Genre", "Vote", "Director", "Runtime", "Revenue", "Description")
+joined_data$Genre <- gsub("-", "", joined_data$Genre)
+joined_data$Genre <- gsub("SciFi", "Sci-Fi", joined_data$Genre)
+joined_data$Vote <- gsub("-", "", joined_data$Vote)
+joined_data$Vote <- gsub(",", "", joined_data$Vote)
+joined_data$Director <- gsub("_", "", joined_data$Director)
+joined_data$Runtime <- gsub("-", "", joined_data$Runtime)
+joined_data$Runtime <- gsub(" min", "", joined_data$Runtime)
+joined_data$Revenue <- gsub("-", "", joined_data$Revenue)
+joined_data$Revenue <- gsub("\\$", "", joined_data$Revenue)
+joined_data$Revenue <- gsub("M", "", joined_data$Revenue)
+
+joined_data$Title <- as.character(joined_data$Title)
+joined_data$Score <- as.numeric(as.character(joined_data$Score))
+joined_data$Metascore <- as.numeric(as.character(joined_data$Metascore))
+joined_data$Genre <- as.character(joined_data$Genre)
+joined_data$Vote <- as.numeric(as.character(joined_data$Vote))
+joined_data$Runtime <- as.numeric(as.character(joined_data$Runtime))
+joined_data$Revenue <- as.numeric(as.character(joined_data$Revenue))
+joined_data$Year <- as.numeric(as.character(joined_data$Year))
+joined_data$Description <- as.character(joined_data$Description)
+```
+
+```{r}
+saveRDS(joined_data, "movie_dataset.rds")
+write.csv(joined_data, "movie_dataset.csv")
+write.xlsx(joined_data, "movie_dataset.xlsx")
+
+write.csv(joined_data, "movies.csv", fileEncoding = "UTF-8")
+```
