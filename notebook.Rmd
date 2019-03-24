@@ -258,8 +258,8 @@ joined_data$Description <- as.character(joined_data$Description)
 
 ```{r}
 saveRDS(joined_data, "movie_dataset.rds")
-write.csv(joined_data, "movie_dataset.csv")
-write.xlsx(joined_data, "movie_dataset.xlsx")
+write_csv(joined_data, "movie_dataset.csv")
+#write.xlsx(joined_data, "movie_dataset.xlsx")
 
 write.csv(joined_data, "movies.csv", fileEncoding = "UTF-8")
 ```
