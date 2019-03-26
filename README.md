@@ -1,5 +1,8 @@
 # Scraping IMDB Using Rvest
 
+Disclaimer: IMDB changed their web layout, which means only 250 films can be viewed in a single window, therefore,
+the script no longer works.
+
 IMDB has some really nicely scrapable pages such as 
 https://www.imdb.com/search/title?title_type=feature&sort=num_votes,desc
 
